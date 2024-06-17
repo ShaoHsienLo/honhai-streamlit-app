@@ -125,7 +125,7 @@ if start_button:
     df_results.index = df_results.index + 1
 
     # 在Streamlit中显示DataFrame
-    st.write("循環性能Capacity Ratio落點數值預測]")
+    st.write("循環性能Capacity Ratio落點數值預測")
     st.dataframe(df_results)
 
     st.write("分析結束！")
