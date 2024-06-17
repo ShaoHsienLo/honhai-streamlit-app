@@ -98,7 +98,7 @@ if start_button:
     # 绘制介于两条直线中间的新直线
     x = np.arange(399, len(ys[0])) + 1
     y = avg_slope * x + avg_intercept
-    fig.add_trace(go.Scatter(x=x, y=y, mode='lines', name='Average trend', line=dict(color='black', dash='dash')))
+    fig.add_trace(go.Scatter(x=x, y=y, mode='lines', name='預測趨勢線', line=dict(color='black', dash='dash')))
 
     # 更新布局
     fig.update_layout(title='Four Sets of Floating Point Numbers with Trends',
