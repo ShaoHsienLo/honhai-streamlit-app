@@ -48,11 +48,15 @@ for y in ys:
 
 values_list = [[2, 1.5], [2.5, 1.5], [2, 1], [2.5, 1]]
 # 使用 Streamlit 滑动条调整 input_values
-col1, col2 = st.columns(2)
+col1, col2, col3, col4 = st.columns(4)
 with col1:
     input_value1 = st.slider('添加劑 E', 2.0, 2.5, 2.0)
 with col2:
+    input_value3 = st.slider('添加劑 F', 0.0, 1.0, 0.5)
+with col3:
     input_value2 = st.slider('添加劑 G', 1.0, 1.5, 1.0)
+with col4:
+    input_value4 = st.slider('添加劑 H', 0.0, 1.5, 1.0)
 input_values = [input_value1, input_value2]
 
 start_button = st.button("開始分析")
@@ -61,8 +65,8 @@ if start_button:
     st.write("")
     closest_pairs, closest_indices = find_closest(values_list, input_values)
     # st.write(f"The two closest pairs to **{input_value1}, {input_value1}** are: **{closest_pairs[0]}, {closest_pairs[1]}**")
-    st.markdown(f"""The two closest pairs to <span style="color:red; font-weight:bold">{input_value1}, {input_value2}</span> are: 
-    <span style="color:blue; font-weight:bold">{closest_pairs[0]}, {closest_pairs[1]}</span>""", unsafe_allow_html=True)
+    # st.markdown(f"""The two closest pairs to <span style="color:red; font-weight:bold">{input_value1}, {input_value2}</span> are: 
+    # <span style="color:blue; font-weight:bold">{closest_pairs[0]}, {closest_pairs[1]}</span>""", unsafe_allow_html=True)
     # st.write(f"Their indices in the list are: **{closest_indices}**")
 
     # 颜色列表
@@ -106,7 +110,7 @@ if start_button:
                     yaxis_title='Capacity ratio')
 
     # 在 Streamlit 中显示图形
-    st.plotly_chart(fig)
+    st.plotly_chart(fig, use_container_width=True)
 
     # 显示图形
     # fig.show()
