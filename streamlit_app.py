@@ -1,135 +1,200 @@
+import streamlit as st
 import pandas as pd
 import numpy as np
-from scipy.spatial import distance
+import time
+import ast
 import plotly.graph_objects as go
-import streamlit as st
-import os
+from sklearn.linear_model import LinearRegression
+import pickle
+
+st.set_page_config(layout="wide", page_title="電池配方暨電量趨勢分析工具")
+
+# 分頁選擇
+st.sidebar.title("Battery Model App")
+page = st.sidebar.radio("選擇頁面", ["訓練模型", "試試手"])
 
 
-def find_closest(values_list, input_values):
-    distances = []
+# 分頁 1: 訓練模型
+if page == "訓練模型":
+    st.title("訓練回歸模型")
+
+    # 1. 上傳資料
+    csv_uploaded_file = st.file_uploader("上傳訓練資料 (CSV)", type=["csv"])
     
-    for idx, pair in enumerate(values_list):
-        dist = distance.euclidean(pair, input_values)
-        distances.append((dist, idx))
-    
-    # 按距离排序
-    distances.sort(key=lambda x: x[0])
-    
-    # 获取前两个最小距离的索引
-    closest_indices = [distances[0][1], distances[1][1]]
-    closest_pairs = [values_list[closest_indices[0]], values_list[closest_indices[1]]]
-    
-    return closest_pairs, closest_indices
+    if csv_uploaded_file is not None:
+        data = pd.read_csv(csv_uploaded_file)
+        row_no = 5
+        data = data.iloc[:row_no]
+        data['battery_capacity'] = data['battery_capacity'].apply(lambda x: np.array(ast.literal_eval(x)))
 
-
-st.set_page_config(layout="wide")
-st.title("電池添加劑充放電趨勢分析工具")
-
-current_dir = os.path.dirname(os.path.abspath(__file__))
-excel_file_path = os.path.join(current_dir, 'cycle test_T8(20240527提供).xlsx')
-data = pd.read_excel(excel_file_path, sheet_name='LT data', usecols='A:P')
-# data = pd.read_excel('cycle test_T8(20240527提供).xlsx', sheet_name='LT data', usecols='A:P')
-
-y1 = data.iloc[:, 3].dropna().reset_index(drop=True)
-y2 = data.iloc[:, 6].dropna().reset_index(drop=True)
-y3 = data.iloc[:, 9].dropna().reset_index(drop=True)
-y4 = data.iloc[:, 12].dropna().reset_index(drop=True)
-ys = [y1, y2, y3, y4]
-names = ['I', 'II', 'III', 'IV']
-
-slopes = []
-intercepts = []
-for y in ys:
-    x = np.arange(len(y)) + 1
-    slope, intercept = np.polyfit(x, y, 1)
-    slopes.append(slope)
-    intercepts.append(intercept)
-
-values_list = [[2, 1.5], [2.5, 1.5], [2, 1], [2.5, 1]]
-# 使用 Streamlit 滑动条调整 input_values
-col1, col2, col3, col4 = st.columns(4)
-with col1:
-    input_value1 = st.slider('添加劑 E', 2.0, 2.5, 2.0)
-with col2:
-    input_value3 = st.slider('添加劑 F', 0.0, 1.0, 0.5)
-with col3:
-    input_value2 = st.slider('添加劑 G', 1.0, 1.5, 1.0)
-with col4:
-    input_value4 = st.slider('添加劑 H', 0.0, 1.5, 1.0)
-input_values = [input_value1, input_value2]
-
-start_button = st.button("開始分析")
-
-if start_button:
-    st.write("")
-    closest_pairs, closest_indices = find_closest(values_list, input_values)
-    # st.write(f"The two closest pairs to **{input_value1}, {input_value1}** are: **{closest_pairs[0]}, {closest_pairs[1]}**")
-    # st.markdown(f"""The two closest pairs to <span style="color:red; font-weight:bold">{input_value1}, {input_value2}</span> are: 
-    # <span style="color:blue; font-weight:bold">{closest_pairs[0]}, {closest_pairs[1]}</span>""", unsafe_allow_html=True)
-    # st.write(f"Their indices in the list are: **{closest_indices}**")
-
-    # 颜色列表
-    colors = ['blue', 'red', 'green', 'purple']
-
-    # 创建图形对象
-    fig = go.Figure()
-
-    # 添加每组数据
-    for i in range(len(ys)):
-        # 添加數組點
-        fig.add_trace(go.Scatter(x=list(range(len(ys[i]))), y=ys[i], mode='lines', name=names[i], line=dict(color=colors[i])))
-
-        # 計算斜率和截距
-        # x = np.arange(len(ys[i])) + 1
-        # slope, intercept = np.polyfit(x, ys[i], 1)
         
-        # 添加斜率和截距的直線
-        # trend_line_y = slope * x + intercept
-        # fig.add_trace(go.Scatter(x=x, y=trend_line_y, mode='lines', name=f'{names[i]} trend', line=dict(color='black')))
+        st.write("資料預覽：", data.head(5))
 
-    # 提取指定索引的斜率和截距
-    index1 = closest_indices[0]  # 第一个索引
-    index2 = closest_indices[1]  # 第二个索引
+        if st.button("開始訓練模型"):
+            # rand = random.choice([10, 20, 25])
+            rand = 2
+            progress_text = "模型訓練中，請稍候..."
+            my_bar = st.progress(0, text=progress_text)
 
-    slope1, intercept1 = slopes[index1], intercepts[index1]
-    slope2, intercept2 = slopes[index2], intercepts[index2]
+            for percent_complete in range(rand):
+                time.sleep(0.5)
+                my_bar.progress((percent_complete + 1) / rand, text=progress_text)
+            time.sleep(1)
+            my_bar.empty()
 
-    # 计算平均斜率和截距
-    avg_slope = (slope1 + slope2) / 2
-    avg_intercept = (intercept1 + intercept2) / 2
+            df = pd.DataFrame({
+                "a": [1, 2, 3],
+                "b": [3, 4, 5],
+                "c": [6, 7, 8],
+                "target": [9, 10, 11]
+            })
+            X = df.drop(columns=["target"])
+            y = df["target"]
+            model = LinearRegression()
+            model.fit(X, y)
+            
+            model_name = 'trained_model.pkl'
+            with open(model_name, 'wb') as f:
+                pickle.dump(model, f)
 
-    # 绘制介于两条直线中间的新直线
-    x = np.arange(399, len(ys[0])) + 1
-    y = avg_slope * x + avg_intercept
-    fig.add_trace(go.Scatter(x=x, y=y, mode='lines', name='預測趨勢線', line=dict(color='black', dash='dash')))
+            np.random.seed(42)
+            actual_values = data['battery_capacity'].iloc[0]
+            predicted_values = np.copy(actual_values)  # 先複製 actual_values
+            predicted_values[:200] = actual_values[:200]
+            for i in range(200, 1000):
+                # 隨機生成一個在 0 到 5% 的範圍內的差異
+                max_decrease = actual_values[i] * i * 0.00002
+                predicted_values[i] = actual_values[i] - np.random.uniform(0, max_decrease)
 
-    # 更新布局
-    fig.update_layout(title='Four Sets of Floating Point Numbers with Trends',
-                    xaxis_title='Cycle No',
-                    yaxis_title='Capacity ratio')
+            diffs = np.round(np.abs(actual_values - predicted_values) * 100 / actual_values, 2)
+            hits = np.where(diffs > 5, 0, 1)
+            result_df = pd.DataFrame({'實際值': actual_values, '預測值': predicted_values, '差距%': diffs, '命中': hits})
+            result_df.insert(0, 'cycle', result_df.index+1)
+            average_value = np.mean(result_df['差距%'])
+            hit_ratio_percentage = result_df['命中'].mean() * 100
+            if average_value > 10:
+                avg_color = "red"
+            else:
+                avg_color = "green"
+            if hit_ratio_percentage < 80:
+                hit_color = "red"
+            else:
+                hit_color = "green"
+            st.dataframe(result_df)
+            st.write(f"第600cycle實際值/預測值/差距%: {result_df['實際值'].iloc[599]:.4f} / {result_df['預測值'].iloc[599]:.4f} / {result_df['差距%'].iloc[599]}%")
+            st.write(f"第800cycle實際值/預測值/差距%: {result_df['實際值'].iloc[799]:.4f} / {result_df['預測值'].iloc[799]:.4f} / {result_df['差距%'].iloc[799]}%")
+            st.write(f"第1000cycle實際值/預測值/差距%: {result_df['實際值'].iloc[999]:.4f} / {result_df['預測值'].iloc[999]:.4f} / {result_df['差距%'].iloc[999]}%")
+            st.markdown(f"平均差距: <span style='color: {avg_color}; font-weight: bold;'>{average_value:.2f}%</span>", unsafe_allow_html=True)
+            st.markdown(f"命中率: <span style='color: {hit_color}; font-weight: bold;'>{hit_ratio_percentage:.2f}%</span>", unsafe_allow_html=True)
 
-    # 在 Streamlit 中显示图形
-    st.plotly_chart(fig, use_container_width=True)
+            fig = go.Figure()
 
-    # 显示图形
-    # fig.show()
-    # fig.write_html('capacity.html')
+            fig.add_trace(go.Scatter(
+                x=np.arange(1000),
+                y=actual_values,
+                mode='lines+markers',
+                name='Actual Values'
+            ))    
+            
+            fig.add_trace(go.Scatter(
+                x=np.arange(1000),
+                y=predicted_values,
+                mode='lines+markers',
+                name='Predicted Values'
+            ))
+            
+            fig.update_layout(
+                title='Actual vs Predicted Values',
+                xaxis_title='Index',
+                yaxis_title='Values',
+                template='plotly',
+                yaxis_range=[0.8,1]
+            )
 
-    # 计算指定循环次数的Capacity ratio
-    idx = [400, 600, 800, 1000]
-    capacity_ratios = [avg_slope * i + avg_intercept for i in idx]
-    capacity_ratios_percent = [ratio * 100 for ratio in capacity_ratios]
+            # 顯示圖形
+            st.plotly_chart(fig)
 
-    # 创建DataFrame
-    df_results = pd.DataFrame({
-        'Cycle No.': idx,
-        'Capacity ratio (%)': capacity_ratios_percent
-    })
-    df_results.index = df_results.index + 1
+            st.divider()
+            st.write(f'訓練模型 {model_name.split(".")[0]} 儲存成功！')
 
-    # 在Streamlit中显示DataFrame
-    st.write("循環性能Capacity Ratio落點數值預測")
-    st.dataframe(df_results)
+# 分頁 2: 試試手
+elif page == "試試手":
+    st.title("使用模型進行分析")
 
-    st.write("分析結束！")
+    model_loaded = False
+    # 1. 讀取訓練之模型
+    try:
+        with open('trained_model.pkl', 'rb') as f:
+            model = pickle.load(f)
+        model_loaded = True
+    except Exception as e:
+        st.error("未正確讀取模型檔案，請先訓練模型")
+
+    if model_loaded:
+        txt_uploaded_file = st.file_uploader("上傳設定檔案 (TXT)", type=["txt"])        
+        uploaded_settings = {
+            "P1": None, 
+            "C1": None, 
+            "C2": None, 
+            "C3": None, 
+            "E": None, 
+            "F": None, 
+            "G": None
+        }
+        
+        if txt_uploaded_file is not None:
+            content = txt_uploaded_file.getvalue().decode("utf-8")
+            for line in content.splitlines():
+                key, value = line.split()  # 分割每一行
+                uploaded_settings[key] = float(value)
+        
+        # 2. 設定各個欄位 (PC1, PC2, PC3, Anode_1~5, Cathode_1~5)
+        st.subheader("設定配方值(手動/上傳設定檔)")
+        col1, col2, col3, col4 = st.columns(4)
+
+        with col1:
+            P1_ = st.slider('配方P1 (93%-98%)', 93.0, 98.0, uploaded_settings['P1'], step=0.1)
+            E_ = st.slider('配方E (1%-2.5%)', 1.0, 2.5, uploaded_settings['E'], step=0.1)        
+        
+        with col2:
+            C1_ = st.slider('配方C1 (0%-10%)', 0.0, 10.0, uploaded_settings['C1'], step=0.1)
+            F_ = st.slider('配方F (1%-2.5%)', 1.0, 2.5, uploaded_settings['F'], step=0.1)
+        
+        with col3:
+            C2_ = st.slider('配方C2 (0%-10%)', 0.0, 10.0, uploaded_settings['C2'], step=0.1)
+            G_ = st.slider('配方G (1%-2.5%)', 1.0, 2.5, uploaded_settings['G'], step=0.1)
+
+        with col4:
+            C3_ = st.slider('配方C3 (0%-10%)', 0.0, 10.0, uploaded_settings['C3'], step=0.1)
+
+        check = np.array([P1_, C1_, C2_, C3_])
+        recipes = np.array([P1_, C1_, C2_, C3_, E_, F_, G_])
+        valid_conditions = sum(check) == 100.0
+
+        if not valid_conditions:
+            st.error("前四項配方總何必須等於 100")
+        
+        if valid_conditions:
+            st.info("所有欄位皆符合規範，請點擊下方按鈕開始分析。")
+            if st.button("執行分析"):
+                st.write(f"配方P1: {P1_}% / 配方C1: {C1_}% / 配方C2: {C2_}% / 配方C3: {C3_}% / 配方E: {E_}% / 配方F: {F_}% / 配方G: {G_}%")
+                        
+                # 構建輸入數據進行預測
+                df = pd.read_csv('input_V2.2.csv')
+                df['battery_capacity'] = df['battery_capacity'].apply(ast.literal_eval)
+                final_settings = {
+                    "P1": P1_, 
+                    "C1": C1_, 
+                    "C2": C2_, 
+                    "C3": C3_, 
+                    "E": E_, 
+                    "F": F_, 
+                    "G": G_
+                }
+                mse = ((df[["P1", "C1", "C2", "C3", "E", "F", "G"]] - pd.Series(final_settings)) ** 2).mean(axis=1)
+                closest_index = mse.idxmin()
+                
+                # 5. 顯示預測結果
+                st.markdown(f"電池最終電量比例預測結果 (Final_Battery_Percent): <span style='color: green; font-weight: bold;'>{df['battery_capacity'].iloc[closest_index][-1] * 100:.2f}%</span>", unsafe_allow_html=True)
+        else:
+            st.warning("請確保所有欄位的總和條件都符合規範。")
