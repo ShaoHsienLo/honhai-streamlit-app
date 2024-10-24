@@ -72,8 +72,9 @@ if page == "訓練模型":
                 st.write(f"Circle No. {pred_circle_no}: 測試集預測誤差為【{test_result}】")
 
                 # Save the model to a file
+                models_dir = "models"
                 model_name = f'lr_model_{pred_circle_no}.pkl'
-                os.makedirs("models", exist_ok=True)
+                os.makedirs(models_dir, exist_ok=True)
                 with open(os.path.join("models", model_name), 'wb') as file:
                     pickle.dump(model, file)
 
