@@ -24,6 +24,8 @@ if page == "訓練模型":
 
     # 1. 上傳資料
     csv_uploaded_file = st.file_uploader("上傳訓練資料 (CSV)", type=["csv"])
+    models_dir = "models"
+    os.makedirs(models_dir, exist_ok=True)
     
     if csv_uploaded_file is not None:
         data = pd.read_csv(csv_uploaded_file)
@@ -72,9 +74,7 @@ if page == "訓練模型":
                 st.write(f"Circle No. {pred_circle_no}: 測試集預測誤差為【{test_result}】")
 
                 # Save the model to a file
-                models_dir = "models"
                 model_name = f'lr_model_{pred_circle_no}.pkl'
-                os.makedirs(models_dir, exist_ok=True)
                 with open(os.path.join("models", model_name), 'wb') as file:
                     pickle.dump(model, file)
 
@@ -137,7 +137,7 @@ elif page == "試試手":
         tuple(model_numbers),
     )
 
-    if len(model_numbers) > 1 and model_numbers:
+    if len(model_numbers) > 0 and model_numbers:
         circle_no = int(option)
         with open(os.path.join(models_dir, f'lr_model_{circle_no}.pkl'), 'rb') as f:
             model = pickle.load(f)
